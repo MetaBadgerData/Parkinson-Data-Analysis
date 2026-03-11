@@ -1,0 +1,36 @@
+---
+title: "STAT 447 Project 1 Draft"
+author: "Alex White and Shelby Hennlich"
+date: "2026-03-08"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## I. Introduction to Data
+
+Parkinson's Disease, according the National Institute of Neurological Disorders and Stroke (NIH), is best classified as a disorder that attacks the nervous system, making it increasing difficult for an individual to perform movement-based tasks. In particular, Parkinson's Disease can have a severe effect on an individual's talking capability, often causing hesitation, slurred words, and monotony whilst speaking (NIH).
+
+However, while it is known that Parkinson's Disease (PD) causes these issues in speaking, the specific medical differences in voice quality seen between those with PD and those without can also be investigated.
+
+Therefore, by analyzing various biomedical voice measurements, it may be possible to see which voice measurements can successfully be used to discriminate healthy people from those that do struggle with PD. More specifically, these vocal discriminators can be found by exploring the vocal fundamental frequencies and tonal components of individuals with and without PD.
+
+For this specific report, the data of the vocal fundamental frequencies and tonal components was collected from 31 individuals, 23 of which were diagnosed with PD. Each individual provided around 6 vocal recordings, with a total of 195 voice recordings and their measurements being collected from the 31 individuals. Alongside this measurement-focused data, the demographics and stages of PD for the 23 diagnosed individuals and 11 healthy individuals was also collected.
+
+With the purpose and the background of this PD data established, the exploration process of the 31 individuals and their distinguishing voice measurements can begin.
+
+## II. Exploring the Data
+
+## III. Statistical Methods
+
+## IV. Results and Conclusions
+
+Introduction – set the stage for the rest of the paper. Summarize the problem and how you approached looking at it.
+
+Exploring the Data – explore the experimental data using numeric summaries like frequency tables or summary statistics (mean, standard deviation, median, etc.) and graphical tools. This exploration should be broader than just what ends up being meaningful when it comes to the final results. All tables and figures in your document should be labelled by figure or table number with a caption and referenced in the document according to the number. (See Figure captions Rmd file in Canvas)
+
+Statistical Methods – should note all statistical procedures used in just enough detail that another researcher could reproduce the work. Avoid too much detail (do not state Ho, do not note exact code syntax, etc.). The significance level used for hypothesis tests and/or the confidence level used for confidence intervals should be stated explicitly.
+
+Results and Conclusions – The results section should include thoughtfully selected summary statistics for the data set (in text, table, and/or graphic form). Use your judgment to decide how the data can best be presented in a complete, yet digestible way that aligns with the research question and results. Report results of the statistical procedures noted in the methods section. State conclusions in sentence form with supporting statistical details noted in parentheses. For example: There is significant evidence that mean study time of freshmen is less than that of sophomores (𝑡𝑡 = 7.1, P \< 0.0001).
