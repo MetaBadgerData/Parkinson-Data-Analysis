@@ -25,6 +25,14 @@ With the purpose and the background of this PD data established, the exploration
 
 ## III. Statistical Methods
 
+Significance level is going to be \$\$/alpja
+
+We are going to be looking at these attributes
+
+MDVP:FLO(HTZ)
+
+MDVP.SHIMMBER.DB
+
 ## IV. Results and Conclusions
 
 Introduction – set the stage for the rest of the paper. Summarize the problem and how you approached looking at it.
@@ -34,3 +42,112 @@ Exploring the Data – explore the experimental data using numeric summaries lik
 Statistical Methods – should note all statistical procedures used in just enough detail that another researcher could reproduce the work. Avoid too much detail (do not state Ho, do not note exact code syntax, etc.). The significance level used for hypothesis tests and/or the confidence level used for confidence intervals should be stated explicitly.
 
 Results and Conclusions – The results section should include thoughtfully selected summary statistics for the data set (in text, table, and/or graphic form). Use your judgment to decide how the data can best be presented in a complete, yet digestible way that aligns with the research question and results. Report results of the statistical procedures noted in the methods section. State conclusions in sentence form with supporting statistical details noted in parentheses. For example: There is significant evidence that mean study time of freshmen is less than that of sophomores (𝑡𝑡 = 7.1, P \< 0.0001).
+
+```{r}
+library(tidyverse)
+library(readxl)
+
+voice_df <- read.csv("parkinsons.csv")
+patient_df <- read_excel("Patient Info.xlsx")
+
+
+# Extract subject code and clean up
+patient_df <- patient_df %>%
+  mutate(
+    # Get clean subject code (S01, S02, etc.)
+    subject_code = str_extract(`Subject code`, "S\\d+"),
+    
+    # Convert fractions in Years since diagnosis
+    `Years since diagnosis` = case_when(
+      `Years since diagnosis` == "¼" ~ "0.25",
+      `Years since diagnosis` == "½" ~ "0.5",
+      `Years since diagnosis` == "1½" ~ "1.5",
+      `Years since diagnosis` == "4½" ~ "4.5",
+      `Years since diagnosis` == "5½" ~ "5.5",
+      TRUE ~ `Years since diagnosis`
+    ),
+    `Years since diagnosis` = as.numeric(`Years since diagnosis`),
+    
+    # Convert Stage to numeric
+    `Stage (H&Y)` = as.numeric(`Stage (H&Y)`)
+  )
+
+# Extract subject code from the name column
+voice_df <- voice_df %>%
+  mutate(
+    subject_code = str_extract(name, "S\\d+") #Using regex here
+  )
+
+# Aggregate using median for each subject (6 recordings per subject)
+voice_aggregated <- voice_df %>%
+  group_by(subject_code) %>% #For each subject do the summarise function
+  summarise(
+    # Voice measurements - using median
+    #Doing na.rm = true so I can get rid of Na values
+    Fo_Hz_median = median(MDVP.Fo.Hz., na.rm = TRUE), 
+    Fhi_Hz_median = median(MDVP.Fhi.Hz., na.rm = TRUE),
+    Flo_Hz_median = median(MDVP.Flo.Hz., na.rm = TRUE),
+    Jitter_percent_median = median(MDVP.Jitter..., na.rm = TRUE),
+    Jitter_Abs_median = median(MDVP.Jitter.Abs., na.rm = TRUE),
+    RAP_median = median(MDVP.RAP, na.rm = TRUE),
+    PPQ_median = median(MDVP.PPQ, na.rm = TRUE),
+    DDP_median = median(Jitter.DDP, na.rm = TRUE),
+    Shimmer_median = median(MDVP.Shimmer, na.rm = TRUE),
+    Shimmer_dB_median = median(MDVP.Shimmer.dB., na.rm = TRUE),
+    APQ3_median = median(Shimmer.APQ3, na.rm = TRUE),
+    APQ5_median = median(Shimmer.APQ5, na.rm = TRUE),
+    APQ_median = median(MDVP.APQ, na.rm = TRUE),
+    DDA_median = median(Shimmer.DDA, na.rm = TRUE),
+    NHR_median = median(NHR, na.rm = TRUE),
+    HNR_median = median(HNR, na.rm = TRUE),
+    
+    # Also keep status (should be same for all recordings of same subject)
+    status = first(status)
+  ) %>%
+  ungroup()
+
+# Merge the datasets
+parkinsons_final <- voice_aggregated %>%
+  left_join(patient_df, by = "subject_code")
+
+parkinsons_final
+
+
+
+
+# 5. Simple scatter plot with actual variables
+plot(parkinsons_final$Age, parkinsons_final$Jitter_Abs_median, 
+     col = ifelse(parkinsons_final$status == 1, "red", "blue"),
+     main = "Age vs Jitter",
+     xlab = "Age", ylab = "Jitter")
+legend("topright", legend = c("PD (status=1)", "Healthy (status=0)"), 
+       col = c("red", "blue"), pch = 1)
+
+#THIS IS IMPORTANT TO LOOK ATTTTT (SEX vs Flo_Hz)
+parkinsons_final$Sex <- as.factor(parkinsons_final$Sex)
+plot(parkinsons_final$Sex, parkinsons_final$Flo_Hz_median, 
+     col = ifelse(parkinsons_final$status == 1, "red", "blue"),
+     main = "Sex vs Flo_Hz_median",
+     xlab = "Sex", ylab = "Flo_Hz_median")
+legend("topright", legend = c("PD (status=1)", "Healthy (status=0)"), 
+       col = c("red", "blue"), pch = 1)
+
+#AGE Distribution 
+summary(parkinsons_final$Age)
+hist(parkinsons_final$Age, main = "Age Distribution", xlab = "Age")
+
+
+
+# Hist by group
+hist(voice_df$MDVP.Jitter..., 
+     main = "Distribution of Jitter", 
+     xlab = "Jitter", 
+     col = "lightblue")
+
+
+table(parkinsons_final$status)
+prop.table(table(parkinsons_final$status))
+
+
+
+```
