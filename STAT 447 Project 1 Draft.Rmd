@@ -75,7 +75,7 @@ patient_df <- patient_df %>%
 # Extract subject code from the name column
 voice_df <- voice_df %>%
   mutate(
-    subject_code = str_extract(name, "S\\d+") #Using regex here
+    subject_code = str_extract(name, "S\\d+") #Using regex here learned from Stat345
   )
 
 # Aggregate using median for each subject (6 recordings per subject)
@@ -113,6 +113,16 @@ parkinsons_final <- voice_aggregated %>%
 parkinsons_final
 
 
+str(parkinsons_final)
+
+plot(parkinsons_final[,2:6])
+plot(parkinsons_final[,7:10])
+plot(parkinsons_final[,c(11:14)])
+plot(parkinsons_final[,c(15:17)])
+
+
+plot(parkinsons_final[,c(18,2:6)])
+
 
 
 # 5. Simple scatter plot with actual variables
@@ -125,12 +135,37 @@ legend("topright", legend = c("PD (status=1)", "Healthy (status=0)"),
 
 #THIS IS IMPORTANT TO LOOK ATTTTT (SEX vs Flo_Hz)
 parkinsons_final$Sex <- as.factor(parkinsons_final$Sex)
-plot(parkinsons_final$Sex, parkinsons_final$Flo_Hz_median, 
+parkinsons_final$status <- as.factor(parkinsons_final$status)
+
+plot(parkinsons_final$status, parkinsons_final$Flo_Hz_median, 
      col = ifelse(parkinsons_final$status == 1, "red", "blue"),
-     main = "Sex vs Flo_Hz_median",
-     xlab = "Sex", ylab = "Flo_Hz_median")
+     main = "status vs Flo_Hz_median",
+     xlab = "status", ylab = "Flo_Hz_median")
 legend("topright", legend = c("PD (status=1)", "Healthy (status=0)"), 
        col = c("red", "blue"), pch = 1)
+
+
+plot(parkinsons_final$status, parkinsons_final$Shimmer_dB_median, 
+     col = ifelse(parkinsons_final$status == 1, "red", "blue"),
+     main = "status vs Shimmer_dB_medium",
+     xlab = "status", ylab = "Shimmer_dB_medium")
+legend("topright", legend = c("PD (status=1)", "Healthy (status=0)"), 
+       col = c("red", "blue"), pch = 1)
+
+#Noise to harmonic ratio vs Status
+plot(parkinsons_final$status, parkinsons_final$NHR_median, 
+     col = ifelse(parkinsons_final$status == 1, "red", "blue"),
+     main = "status vs NHR_median",
+     xlab = "status", ylab = "NHR_median")
+
+
+#Harmonic to noise ratio VS Status
+plot(parkinsons_final$status, parkinsons_final$HNR_median, 
+     col = ifelse(parkinsons_final$status == 1, "red", "blue"),
+     main = "status vs HNR_median",
+     xlab = "status", ylab = "HNR_median")
+
+
 
 #AGE Distribution 
 summary(parkinsons_final$Age)
@@ -147,6 +182,9 @@ hist(voice_df$MDVP.Jitter...,
 
 table(parkinsons_final$status)
 prop.table(table(parkinsons_final$status))
+prop.table(table(parkinsons_final$Sex))
+prop.table(table(parkinsons_final$Age))
+
 
 
 
