@@ -1,0 +1,262 @@
+---
+title: "STAT 447 Project 1 - Initial Draft"
+author: "Alex White and Shelby Hennlich"
+date: "2026-03-08"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## I. Introduction to Data
+
+Parkinson's Disease, according the National Institute of Neurological Disorders and Stroke (NIH), is best classified as a disorder that attacks the nervous system, making it increasing difficult for an individual to perform movement-based tasks. In particular, Parkinson's Disease can have a severe effect on an individual's talking capability, often causing hesitation, slurred words, and monotony whilst speaking (NIH).
+
+However, while it is known that Parkinson's Disease (PD) causes these issues in speaking, the specific medical differences in voice quality seen between those with PD and those without can also be investigated.
+
+This leads to the primary research question that will be explored in this report:
+
+\newline
+
+*Which voice measurements can successfully be used to discriminate healthy people from those that do struggle with PD?*
+
+\newline
+
+To answer this question, the vocal fundamental frequencies and tonal components of individuals with and without PD can be explored.
+
+For this specific report, the data of the vocal fundamental frequencies and tonal components was collected from 32 individuals, 24 of which were diagnosed with PD. Each individual provided around 6 vocal recordings, with a total of 195 voice recordings and their measurements being collected from the 32 individuals. Alongside this measurement-focused data, the demographics and stages of PD for the 24 diagnosed individuals and 8 healthy individuals was also collected.
+
+With the purpose and the background of this PD data established, the exploration process of the 31 individuals and their distinguishing voice measurements can begin.
+
+\newline
+
+## II. Exploring the Data
+
+Before this data exploration, as each of the 32 individuals had multiple recordings, the data first had to be condensed from 195 observations to a representative 32. More specifically, the median value of each individuals' vocal measurements for their repeated recorded tests was chosen to protect the vocal measurements against outliers and skewness. After these median values were calculated, it was then necessary to join the patients' data with their demographic information.
+
+```{r data_combining, warning = FALSE, message = FALSE, echo = FALSE }
+library(tidyverse)
+library(readxl)
+
+voice_df <- read.csv("parkinsons.csv")
+patient_df <- read_excel("Patient Info.xlsx")
+
+
+# Extract subject code and clean up
+patient_df <- patient_df %>%
+  mutate(
+    # Get clean subject code (S01, S02, etc.)
+    subject_code = str_extract(`Subject code`, "S\\d+"),
+    
+    # Convert fractions in Years since diagnosis
+    `Years since diagnosis` = case_when(
+      `Years since diagnosis` == "¼" ~ "0.25",
+      `Years since diagnosis` == "½" ~ "0.5",
+      `Years since diagnosis` == "1½" ~ "1.5",
+      `Years since diagnosis` == "4½" ~ "4.5",
+      `Years since diagnosis` == "5½" ~ "5.5",
+      TRUE ~ `Years since diagnosis`
+    ),
+    `Years since diagnosis` = as.numeric(`Years since diagnosis`),
+    
+    # Convert Stage to numeric
+    `Stage (H&Y)` = as.numeric(`Stage (H&Y)`)
+  )
+
+# Extract subject code from the name column
+voice_df <- voice_df %>%
+  mutate(
+    subject_code = str_extract(name, "S\\d+") #Using regex here learned from Stat345
+  )
+
+# Aggregate using median for each subject (6 recordings per subject)
+voice_aggregated <- voice_df %>%
+  group_by(subject_code) %>% #For each subject do the summarise function
+  summarise(
+    # Voice measurements - using median
+    #Doing na.rm = true so I can get rid of Na values
+    Fo_Hz_median = median(MDVP.Fo.Hz., na.rm = TRUE), 
+    Fhi_Hz_median = median(MDVP.Fhi.Hz., na.rm = TRUE),
+    Flo_Hz_median = median(MDVP.Flo.Hz., na.rm = TRUE),
+    Jitter_percent_median = median(MDVP.Jitter..., na.rm = TRUE),
+    Jitter_Abs_median = median(MDVP.Jitter.Abs., na.rm = TRUE),
+    RAP_median = median(MDVP.RAP, na.rm = TRUE),
+    PPQ_median = median(MDVP.PPQ, na.rm = TRUE),
+    DDP_median = median(Jitter.DDP, na.rm = TRUE),
+    Shimmer_median = median(MDVP.Shimmer, na.rm = TRUE),
+    Shimmer_dB_median = median(MDVP.Shimmer.dB., na.rm = TRUE),
+    APQ3_median = median(Shimmer.APQ3, na.rm = TRUE),
+    APQ5_median = median(Shimmer.APQ5, na.rm = TRUE),
+    APQ_median = median(MDVP.APQ, na.rm = TRUE),
+    DDA_median = median(Shimmer.DDA, na.rm = TRUE),
+    NHR_median = median(NHR, na.rm = TRUE),
+    HNR_median = median(HNR, na.rm = TRUE),
+    
+    # Also keep status (should be same for all recordings of same subject)
+    status = first(status)
+  ) %>%
+  ungroup()
+
+# Merge the datasets
+parkinsons_final <- voice_aggregated %>%
+  left_join(patient_df, by = "subject_code")
+
+```
+
+With the condensed and joined data set created, it was then possible to explore relationships in the data using various EDA techniques:
+
+\newline
+
+**Technique #1: Data Summaries**
+
+To begin, various medical and demographic qualities of the 32 patients were analyzed in the form of frequency tables:
+
+```{r data_summaries1, fig.cap="Figure 1.1: Frequency of Parkison's Disease(PD) Across Patients", out.width="50%", echo = FALSE}
+
+#set up table 1 as blank matrix (do not need extra row for column names)
+PD_table=matrix(NA,nrow=2,ncol=3)
+table1<- table(parkinsons_final$status)
+
+colnames(PD_table)=c("PD Diagnosis ","  Count ", "  Proportion (%)")
+#Table Row 1
+PD_table[1,]=c("Has PD", table1[1],(table1[1]/32)*100)
+#Table Row 2
+PD_table[2,]=c("No PD", table1[2],(table1[2]/32)*100)
+
+library(knitr)
+kable(PD_table,caption = "Frequency of Parkison's Disease(PD) Across Patients")
+
+
+
+
+```
+
+```{r data_summaries2, fig.cap="Figure 1.2: Frequency of Females/Males Across Patients", out.width="50%", echo = FALSE}
+#set up table 2 as blank matrix (do not need extra row for column names)
+sex_table=matrix(NA,nrow=2,ncol=3)
+table2<- table(parkinsons_final$Sex)
+
+colnames(sex_table)=c("Sex ","  Count ", "  Proportion (%)")
+#Table Row 1
+sex_table[1,]=c("Female", table2[1], sprintf("%.2f", (table2[1]/31)*100))
+#Table Row 2
+sex_table[2,]=c("Male", table2[2], sprintf("%.2f",(table2[2]/31)*100))
+
+library(knitr)
+kable(sex_table,caption = "Frequency of Females/Males Across Patients")
+```
+
+```{r data_summaries3, fig.cap="Figure 1.3: Frequency of Ages Across Patients", out.width="50%", echo = FALSE}
+#set up table 3 as blank matrix (do not need extra row for column names)
+age_table=matrix(NA,nrow=5,ncol=3)
+table3<- table(parkinsons_final$Age)
+count_40_49 <- table3[1] + table3[2]
+count_50_59 <- table3[3] + table3[4]
+count_60_69 <- table3[5] + table3[6] + table3[7] + table3[8] + table3[9] + table3[10] + table3[11] + table3[12] + table3[13]
+count_70_79 <- table3[14] + table3[15] + table3[16] + table3[17] + table3[18] + table3[19] + table3[20]
+count_80_plus <- table3[21] + table3[22]
+
+colnames(age_table)=c("Age Range","  Count ", "  Proportion (%)")
+#Table Row 1
+age_table[1,]=c("40-49", count_40_49, sprintf("%.2f", (count_40_49/31)*100))
+#Table Row 2
+age_table[2,]=c("50-59", count_50_59, sprintf("%.2f", (count_50_59/31)*100))
+#Table Row 3
+age_table[3,]=c("60-69", count_60_69, sprintf("%.2f",(count_60_69/31)*100))
+#Table Row 4
+age_table[4,]=c("70-79", count_70_79, sprintf("%.2f", (count_70_79/31)*100))
+#Table Row 5
+age_table[5,]=c("80+", count_80_plus, sprintf("%.2f", (count_80_plus/31)*100))
+
+library(knitr)
+kable(age_table,caption = "Frequency of Ages Across Patients")
+
+
+```
+
+From these three frequency tables, the following observations were made:
+
+-   *Figure 1.1:* From the study, 75% of the patients did not have Parkinson's Disease at the time the data was collected.
+
+-   *Figure 1.2:* Of the 32 patients, 61.29% are male and only 38.71% are female (with one patient not having a listed sex).
+
+-   *Figure 1.3:* Each of the 32 patients are at least 40 years old, with 77.42% of patients being 60 to 79 years old (with one patient not having a listed age).
+
+\newline
+
+**Technique #2: Variable Relationships**
+
+Next, the vocal measurements of the 32 patients were plotted against one another to see any inter-variable relationships without the impact of demographic and the Parkinson's diagnosis data:
+
+```{r variable_relationships1, fig.cap="Figure 2.1: Variable Relationships of Vocal Fundamental Frequency",out.width="50%", echo = FALSE}
+plot(parkinsons_final[,2:4]) #vocal fundamental frequencies
+```
+
+```{r variable_relationships2, fig.cap="Figure 2.2: Variable Relationships of Variation in Vocal Fundamental Frequency",out.width="50%", echo = FALSE}
+plot(parkinsons_final[,5:9]) #variation in fundamanetal frequency
+```
+
+```{r variable_relationships3, fig.cap="Figure 2.3: Variable Relationships of Variation in Vocal Amplitude" ,out.width="50%", echo = FALSE}
+plot(parkinsons_final[,c(10:15)]) #variation in amplitude
+```
+
+```{r variable_relationships4, fig.cap="Figure 2.4: Variable Relationships of Ratio of Noise to Tonal Components in the Voice" ,out.width="50%", echo = FALSE}
+plot(parkinsons_final[,c(16:17)]) #ratio of noise to tonal components
+```
+
+From these four variable-relationship plots, the following observations were made:
+
+-   *Figure 2.1:* The plots for variables related to vocal fundamental frequency showed generally positive and slightly scattered relationships, indicating there is no unseen skewness or inconsistency in these variables from the data.
+
+-   *Figure 2.2:* The plots for variables related to variation in vocal fundamental frequency also showed generally positive but stronger relationships, indicating there is no unseen skewness or inconsistency in these variables from the data.
+
+-   *Figure 2.3:* The plots for variables related to variation in vocal amplitude showed similar results to those seen in *Figure 2.2,* indicating similar results of consistent data for these variables.
+
+-   *Figure 2.4:* The plot for the two variables measuring noise and tonal components in the voice showed a negative but strong relationship, but as the two variables are inverses of one another, remain consistent and not skewed.
+
+\newline
+
+**Technique #3: Box Plots**
+
+```{r plots1, echo = FALSE}
+
+```
+
+\newline
+
+## III. Statistical Methods
+
+With the exploration of this data completed, our overall predictions of what voice measurements are the primary discriminators of those with or without PD were initialized.
+
+**Prediction #1:** Individuals with a lower minimum vocal fundamental frequency (in Hertz) have a higher likelihood of having Parkinson's Disease.
+
+**Prediction #2:** Individuals with higher voice amplitude (in decibels) have a higher likelihood of having Parkinson's Disease.
+
+**Prediction #3:** Individuals with a lower HNR or Harmonics-to-Noise Ratio (in Hertz) have a higher likelihood of having Parkinson's Disease.
+
+To test these three predictions, we utilized a nonparametric statistical approach for comparing voice measurements between individuals with PD and healthy individuals. Because we were comparing these measurements across only two populations (PD and non-PD), the primary statistical method used was the Mann-Whitney U Test.
+
+Explain levels, alpha, overall method ETC
+
+\newline
+
+## IV. Results and Conclusions
+
+```{r prediction1_results, echo = FALSE}
+
+#WILL BE A PRETTY CHART
+
+```
+
+```{r prediction2_results, echo = FALSE}
+
+```
+
+```{r prediction3_results, echo = FALSE}
+
+```
+
+Statistical Methods – should note all statistical procedures used in just enough detail that another researcher could reproduce the work. Avoid too much detail (do not state Ho, do not note exact code syntax, etc.). The significance level used for hypothesis tests and/or the confidence level used for confidence intervals should be stated explicitly.
+
+Results and Conclusions – The results section should include thoughtfully selected summary statistics for the data set (in text, table, and/or graphic form). Use your judgment to decide how the data can best be presented in a complete, yet digestible way that aligns with the research question and results. Report results of the statistical procedures noted in the methods section. State conclusions in sentence form with supporting statistical details noted in parentheses. For example: There is significant evidence that mean study time of freshmen is less than that of sophomores (𝑡𝑡 = 7.1, P \< 0.0001).
